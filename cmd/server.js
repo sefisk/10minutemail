@@ -66,7 +66,7 @@ async function main() {
           create_inbox: 'POST /v1/inboxes',
           fetch_messages: 'GET /v1/inboxes/:id/messages',
           download_attachment: 'GET /v1/inboxes/:id/messages/:uid/attachments/:attachmentId',
-          rotate_token: 'POST /v1/inboxes/:id/token:rotate',
+          rotate_token: 'POST /v1/inboxes/:id/token/rotate',
           delete_inbox: 'DELETE /v1/inboxes/:id',
           admin_domains: 'GET /v1/admin/domains',
           admin_generate: 'POST /v1/admin/generate',

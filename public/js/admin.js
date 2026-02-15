@@ -35,9 +35,12 @@ function toast(msg, type = 'info') {
 
 // ── API ────────────────────────────────────────────────
 async function adminApi(method, path, body = null) {
-  const headers = { 'Content-Type': 'application/json', 'X-Admin-Key': adminKey };
+  const headers = { 'X-Admin-Key': adminKey };
   const opts = { method, headers };
-  if (body) opts.body = JSON.stringify(body);
+  if (body) {
+    headers['Content-Type'] = 'application/json';
+    opts.body = JSON.stringify(body);
+  }
   const res = await fetch(`${API}${path}`, opts);
 
   // Handle text/csv responses
