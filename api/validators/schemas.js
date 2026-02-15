@@ -112,7 +112,7 @@ export const getAttachmentSchema = {
 };
 
 // ============================================================
-// POST /v1/inboxes/:id/token:rotate
+// POST /v1/inboxes/:id/token/rotate
 // ============================================================
 export const rotateTokenSchema = {
   params: {

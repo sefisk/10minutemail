@@ -321,7 +321,7 @@ async function rotateToken() {
   if (!confirm('This will invalidate your current token and issue a new one. Continue?')) return;
 
   try {
-    const data = await apiCall('POST', `/v1/inboxes/${state.inboxId}/token:rotate`, { token_ttl_seconds: 600 });
+    const data = await apiCall('POST', `/v1/inboxes/${state.inboxId}/token/rotate`, { token_ttl_seconds: 600 });
     state.token = data.access_token;
     state.tokenExpiresAt = data.token_expires_at;
     saveSession();
@@ -348,7 +348,19 @@ async function deleteInbox() {
 // ── Copy ───────────────────────────────────────────────
 function copyEmail() {
   if (!state.email) return;
-  navigator.clipboard.writeText(state.email).then(() => toast('Email copied', 'success')).catch(() => {});
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(state.email).then(() => toast('Email copied', 'success')).catch(() => {});
+  } else {
+    const textarea = document.createElement('textarea');
+    textarea.value = state.email;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    document.body.appendChild(textarea);
+    textarea.select();
+    document.execCommand('copy');
+    document.body.removeChild(textarea);
+    toast('Email copied', 'success');
+  }
 }
 
 // ── Timers ─────────────────────────────────────────────

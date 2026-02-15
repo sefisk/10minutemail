@@ -111,9 +111,9 @@ export default async function inboxRoutes(fastify) {
   });
 
   // ==========================================================
-  // POST /v1/inboxes/:id/token:rotate — Rotate access token
+  // POST /v1/inboxes/:id/token/rotate — Rotate access token
   // ==========================================================
-  fastify.post('/v1/inboxes/:id/token\\:rotate', {
+  fastify.post('/v1/inboxes/:id/token/rotate', {
     schema: rotateTokenSchema,
     preHandler: [authenticate, authorizeInbox],
   }, async (request, reply) => {
