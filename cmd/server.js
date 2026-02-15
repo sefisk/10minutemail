@@ -21,8 +21,10 @@ async function main() {
     trustProxy: true,
     requestIdHeader: 'x-request-id',
     bodyLimit: 1048576, // 1MB
-    caseSensitive: true,
-    ignoreTrailingSlash: false,
+    routerOptions: {
+      caseSensitive: true,
+      ignoreTrailingSlash: false,
+    },
   });
 
   try {
