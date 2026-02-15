@@ -1,0 +1,98 @@
+version: "3.9"
+
+services:
+  # ============================================================
+  # PostgreSQL Database
+  # ============================================================
+  postgres:
+    image: postgres:16-alpine
+    container_name: tmmail-postgres
+    environment:
+      POSTGRES_DB: tenminutemail
+      POSTGRES_USER: tmmail
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-devpassword123}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tmmail -d tenminutemail"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # ============================================================
+  # Redis (rate limiting, caching, session store)
+  # ============================================================
+  redis:
+    image: redis:7-alpine
+    container_name: tmmail-redis
+    command: redis-server --maxmemory 128mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  # ============================================================
+  # 10MinuteMail API Server
+  # ============================================================
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tmmail-api
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: tenminutemail
+      DB_USER: tmmail
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      PORT: 3000
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # ============================================================
+  # Migration runner (one-shot)
+  # ============================================================
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: tmmail-migrate
+    env_file:
+      - .env
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: tenminutemail
+      DB_USER: tmmail
+      REDIS_HOST: redis
+    command: ["node", "scripts/migrate.js"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+volumes:
+  pgdata:
+    driver: local
+  redisdata:
+    driver: local

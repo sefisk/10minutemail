@@ -1,0 +1,8 @@
+node_modules
+.git
+.env
+*.md
+.dockerignore
+coverage
+.nyc_output
+*.log
