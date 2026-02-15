@@ -31,6 +31,7 @@ COPY pkg/ ./pkg/
 COPY config/ ./config/
 COPY db/ ./db/
 COPY scripts/ ./scripts/
+COPY public/ ./public/
 
 # Set ownership
 RUN chown -R appuser:appgroup /app
