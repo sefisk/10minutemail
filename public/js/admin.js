@@ -180,9 +180,12 @@ function renderDomains() {
     <div class="domain-card">
       <div class="flex justify-between items-center">
         <span class="domain-name">${esc(d.domain)}</span>
-        <span class="badge ${d.is_active ? 'badge-success' : 'badge-danger'}">${d.is_active ? 'Active' : 'Inactive'}</span>
+        <div class="flex gap-2">
+          <span class="badge ${d.is_local ? 'badge-info' : 'badge-warning'}">${d.is_local ? 'Local SMTP' : 'External POP3'}</span>
+          <span class="badge ${d.is_active ? 'badge-success' : 'badge-danger'}">${d.is_active ? 'Active' : 'Inactive'}</span>
+        </div>
       </div>
-      <div class="domain-host">${esc(d.pop3_host)}:${d.pop3_port} ${d.pop3_tls ? '(TLS)' : ''}</div>
+      <div class="domain-host">${d.is_local ? 'Built-in SMTP server' : `${esc(d.pop3_host)}:${d.pop3_port} ${d.pop3_tls ? '(TLS)' : ''}`}</div>
       <div class="domain-actions">
         <button class="btn btn-sm btn-ghost" data-toggle-domain="${d.id}" data-active="${!d.is_active}">
           ${d.is_active ? 'Disable' : 'Enable'}
@@ -201,20 +204,65 @@ function showAddDomainForm() {
 
 async function addDomain() {
   const name = document.getElementById('new-domain-name').value.trim();
-  const host = document.getElementById('new-domain-host').value.trim();
-  const port = parseInt(document.getElementById('new-domain-port').value, 10);
-  const tls = document.getElementById('new-domain-tls').value === 'true';
+  const mode = document.getElementById('new-domain-mode').value;
+  const isLocal = mode === 'local';
 
-  if (!name || !host) { toast('Domain and POP3 host are required', 'error'); return; }
+  if (!name) { toast('Domain name is required', 'error'); return; }
+
+  const body = { domain: name, is_local: isLocal };
+
+  if (!isLocal) {
+    const host = document.getElementById('new-domain-host').value.trim();
+    const port = parseInt(document.getElementById('new-domain-port').value, 10);
+    const tls = document.getElementById('new-domain-tls').value === 'true';
+    if (!host) { toast('POP3 host is required for external domains', 'error'); return; }
+    body.pop3_host = host;
+    body.pop3_port = port;
+    body.pop3_tls = tls;
+  }
 
   try {
-    await adminApi('POST', '/v1/admin/domains', { domain: name, pop3_host: host, pop3_port: port, pop3_tls: tls });
+    const result = await adminApi('POST', '/v1/admin/domains', body);
     toast('Domain added', 'success');
     document.getElementById('add-domain-form').classList.add('hidden');
     document.getElementById('new-domain-name').value = '';
     document.getElementById('new-domain-host').value = '';
+
+    // Show DNS setup instructions for local domains
+    if (isLocal && result.dns_setup) {
+      showDnsSetup(name, result.dns_setup);
+    }
+
     loadDomains();
   } catch (err) { toast(err.message, 'error'); }
+}
+
+function showDnsSetup(domain, dnsSetup) {
+  const card = document.getElementById('dns-setup-card');
+  const records = document.getElementById('dns-records');
+  const lines = [
+    'Add these DNS records at your domain registrar:',
+    '',
+  ];
+  for (const r of dnsSetup.records) {
+    const prio = r.priority !== undefined ? `    Priority: ${r.priority}` : '';
+    lines.push(`  Type:  ${r.type}`);
+    lines.push(`  Host:  ${r.host}`);
+    lines.push(`  Value: ${r.value}${prio}`);
+    lines.push('');
+  }
+  if (dnsSetup.server_ip) {
+    lines.push(`Server IP: ${dnsSetup.server_ip}`);
+  }
+  lines.push(`SMTP Port: ${dnsSetup.smtp_port}`);
+  if (dnsSetup.note) {
+    lines.push('');
+    lines.push(`Note: ${dnsSetup.note}`);
+  }
+  lines.push('');
+  lines.push('After adding these records, generate inboxes and send a test email.');
+  records.textContent = lines.join('\n');
+  card.classList.remove('hidden');
 }
 
 async function toggleDomain(id, active) {
@@ -418,3 +466,18 @@ document.querySelector('.export-options').addEventListener('click', (e) => {
   if (btn) doExport(btn.dataset.export);
 });
 document.getElementById('btn-copy-export').addEventListener('click', copyExportResults);
+
+// Domain form: toggle POP3 fields based on local/external mode
+document.getElementById('new-domain-mode').addEventListener('change', (e) => {
+  const fields = document.getElementById('external-pop3-fields');
+  if (e.target.value === 'external') {
+    fields.classList.remove('hidden');
+  } else {
+    fields.classList.add('hidden');
+  }
+});
+
+// DNS setup dismiss
+document.getElementById('btn-dismiss-dns').addEventListener('click', () => {
+  document.getElementById('dns-setup-card').classList.add('hidden');
+});

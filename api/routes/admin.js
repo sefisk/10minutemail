@@ -8,6 +8,7 @@ import { encrypt, decrypt } from '../../internal/crypto/encryption.js';
 import { ValidationError } from '../../pkg/errors.js';
 import config from '../../config/index.js';
 import { INBOX_TYPE_GENERATED, INBOX_STATUS_ACTIVE } from '../../pkg/constants.js';
+import { refreshLocalDomains } from '../../internal/smtp/server.js';
 
 /**
  * Admin routes — all require X-Admin-Key authentication.
@@ -25,30 +26,67 @@ export default async function adminRoutes(fastify) {
     schema: {
       body: {
         type: 'object',
-        required: ['domain', 'pop3_host'],
+        required: ['domain'],
         additionalProperties: false,
         properties: {
           domain: { type: 'string', maxLength: 255 },
           pop3_host: { type: 'string', maxLength: 255 },
           pop3_port: { type: 'integer', minimum: 1, maximum: 65535, default: 995 },
           pop3_tls: { type: 'boolean', default: true },
+          is_local: { type: 'boolean', default: true },
         },
       },
     },
   }, async (request, reply) => {
-    const { domain, pop3_host, pop3_port, pop3_tls } = request.body;
+    const { domain, pop3_host, pop3_port, pop3_tls, is_local } = request.body;
+    const isLocal = is_local !== false; // Default to true (local mail server)
+
+    // For local domains, auto-configure POP3 to built-in SMTP (not actually used, but stored)
+    const pop3Host = isLocal ? '127.0.0.1' : pop3_host;
+    const pop3Port = isLocal ? config.smtp.port : (pop3_port || 995);
+    const pop3Tls = isLocal ? false : (pop3_tls !== false);
+
+    if (!isLocal && !pop3_host) {
+      throw new ValidationError('pop3_host is required for external (non-local) domains');
+    }
 
     const result = await domainRepo.createDomain({
       domain,
-      pop3Host: pop3_host,
-      pop3Port: pop3_port || 995,
-      pop3Tls: pop3_tls !== false,
+      pop3Host,
+      pop3Port,
+      pop3Tls,
+      isLocal,
     });
 
-    await audit('admin.domain.created', request, { domain_id: result.id, domain });
+    // Refresh SMTP server's local domain cache
+    if (isLocal) {
+      await refreshLocalDomains();
+    }
+
+    await audit('admin.domain.created', request, { domain_id: result.id, domain, is_local: isLocal });
+
+    // Build DNS setup instructions for local domains
+    // Detect server IP from the request Host header or X-Forwarded-For
+    const serverHost = (request.headers['host'] || '').split(':')[0];
+    const serverIp = request.headers['x-forwarded-for']?.split(',')[0]?.trim()
+                   || (serverHost && serverHost !== 'localhost' ? serverHost : null)
+                   || config.host;
+
+    const dnsInstructions = isLocal ? {
+      instructions: 'Point your domain MX record to this server to receive mail.',
+      server_ip: serverIp,
+      records: [
+        { type: 'MX', host: domain, value: `mail.${domain}`, priority: 10 },
+        { type: 'A', host: `mail.${domain}`, value: serverIp },
+      ],
+      smtp_port: config.smtp.port,
+      note: serverIp === '0.0.0.0' || serverIp === '127.0.0.1' || serverIp === 'localhost'
+        ? 'Replace the IP with your server\'s public IP address.'
+        : null,
+    } : null;
 
     reply.code(201);
-    return result;
+    return { ...result, dns_setup: dnsInstructions };
   });
 
   // GET /v1/admin/domains — List all domains
@@ -74,6 +112,7 @@ export default async function adminRoutes(fastify) {
           pop3_port: { type: 'integer', minimum: 1, maximum: 65535 },
           pop3_tls: { type: 'boolean' },
           is_active: { type: 'boolean' },
+          is_local: { type: 'boolean' },
         },
       },
     },
@@ -85,8 +124,15 @@ export default async function adminRoutes(fastify) {
     if (request.body.pop3_port !== undefined) updates.pop3Port = request.body.pop3_port;
     if (request.body.pop3_tls !== undefined) updates.pop3Tls = request.body.pop3_tls;
     if (request.body.is_active !== undefined) updates.isActive = request.body.is_active;
+    if (request.body.is_local !== undefined) updates.isLocal = request.body.is_local;
 
     const result = await domainRepo.updateDomain(id, updates);
+
+    // Refresh SMTP domain cache if local status changed
+    if (request.body.is_local !== undefined || request.body.is_active !== undefined) {
+      await refreshLocalDomains();
+    }
+
     await audit('admin.domain.updated', request, { domain_id: id });
     return result;
   });
@@ -103,6 +149,7 @@ export default async function adminRoutes(fastify) {
   }, async (request) => {
     const { id } = request.params;
     const result = await domainRepo.deleteDomain(id);
+    await refreshLocalDomains();
     await audit('admin.domain.deleted', request, { domain_id: id });
     return result;
   });

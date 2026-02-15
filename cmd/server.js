@@ -10,6 +10,7 @@ import attachmentRoutes from '../api/routes/attachments.js';
 import adminRoutes from '../api/routes/admin.js';
 import { getPool, closePool } from '../db/connection.js';
 import { cleanExpiredTokens } from '../db/repositories/tokens.js';
+import { startSmtpServer, stopSmtpServer } from '../internal/smtp/server.js';
 
 /**
  * Bootstrap and start the 10MinuteMail API server.
@@ -134,17 +135,30 @@ async function main() {
     await pool.query('SELECT 1');
     logger.info('Database connection verified');
 
-    // Start server
+    // Start HTTP server
     await fastify.listen({ port: config.port, host: config.host });
     logger.info(
       { port: config.port, host: config.host, env: config.env },
       '10MinuteMail API server started'
     );
 
+    // Start built-in SMTP server for local domains
+    try {
+      await startSmtpServer();
+    } catch (err) {
+      logger.error({ err }, 'Failed to start SMTP server (mail receiving disabled)');
+    }
+
     // Graceful shutdown
     const shutdown = async (signal) => {
       logger.info({ signal }, 'Shutdown signal received');
       clearInterval(tokenCleanupInterval);
+
+      try {
+        await stopSmtpServer();
+      } catch (err) {
+        logger.error({ err }, 'Error closing SMTP server');
+      }
 
       try {
         await fastify.close();
