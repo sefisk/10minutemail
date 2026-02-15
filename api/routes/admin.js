@@ -224,11 +224,12 @@ export default async function adminRoutes(fastify) {
 
         const inbox = inboxResult.rows[0];
 
-        // Create token for this inbox
+        // Create token for this inbox (using same transaction client)
         const tokenData = await tokenRepo.createToken({
           inboxId: inbox.id,
           issuedByIp: clientIp,
           ttlSeconds: effectiveTtl,
+          client,
         });
 
         inboxes.push({
