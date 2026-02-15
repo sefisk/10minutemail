@@ -30,6 +30,7 @@ export async function registerPlugins(fastify) {
         frameSrc: ["'self'"],
       },
     },
+    hsts: false,
     crossOriginResourcePolicy: { policy: 'cross-origin' },
     crossOriginOpenerPolicy: { policy: 'same-origin' },
   });
