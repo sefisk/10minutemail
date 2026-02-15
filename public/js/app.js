@@ -82,11 +82,14 @@ function toast(message, type = 'info') {
 
 // ── API Helpers ────────────────────────────────────────
 async function apiCall(method, path, body = null, extraHeaders = {}) {
-  const headers = { 'Content-Type': 'application/json', ...extraHeaders };
+  const headers = { ...extraHeaders };
   if (state.token) headers['Authorization'] = `Bearer ${state.token}`;
 
   const opts = { method, headers };
-  if (body) opts.body = JSON.stringify(body);
+  if (body) {
+    headers['Content-Type'] = 'application/json';
+    opts.body = JSON.stringify(body);
+  }
 
   const res = await fetch(`${API}${path}`, opts);
   const data = await res.json().catch(() => ({}));
