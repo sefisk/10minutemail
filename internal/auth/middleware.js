@@ -1,4 +1,3 @@
-import { verifyToken } from './jwt.js';
 import { hashToken } from '../crypto/encryption.js';
 import { query } from '../../db/connection.js';
 import { AuthenticationError, AuthorizationError } from '../../pkg/errors.js';
@@ -19,10 +18,7 @@ export async function authenticate(request, reply) {
     throw new AuthenticationError('Empty bearer token');
   }
 
-  // Verify JWT signature and expiration
-  const decoded = verifyToken(rawToken);
-
-  // Verify token exists and is active in the database
+  // Look up token by hash in the database
   const tokenHash = hashToken(rawToken);
   const result = await query(
     `SELECT t.id, t.inbox_id, t.status, t.expires_at, i.status AS inbox_status
