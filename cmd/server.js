@@ -1,4 +1,6 @@
+import { resolve } from 'node:path';
 import Fastify from 'fastify';
+import fastifyStatic from '@fastify/static';
 import config from '../config/index.js';
 import logger from '../pkg/logger.js';
 import { registerPlugins } from '../api/plugins/index.js';
@@ -27,14 +29,26 @@ async function main() {
     // Register plugins (helmet, cors, rate-limit, swagger, error handler)
     await registerPlugins(fastify);
 
+    // Serve static UI files (CSS, JS, images)
+    await fastify.register(fastifyStatic, {
+      root: resolve(process.cwd(), 'public'),
+      prefix: '/',
+      decorateReply: true,
+    });
+
     // Register API routes
     await fastify.register(inboxRoutes);
     await fastify.register(messageRoutes);
     await fastify.register(attachmentRoutes);
     await fastify.register(adminRoutes);
 
-    // Root endpoint — API info
-    fastify.get('/', async () => {
+    // Root — serve the public UI
+    fastify.get('/', async (request, reply) => {
+      return reply.sendFile('index.html');
+    });
+
+    // API info endpoint (for programmatic consumers)
+    fastify.get('/api', async () => {
       return {
         service: '10MinuteMail API',
         version: '1.0.0',

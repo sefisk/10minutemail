@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — 10MinuteMail</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .login-wrapper { display: flex; align-items: center; justify-content: center; min-height: 100vh; padding: 24px; }
+    .login-card { width: 100%; max-width: 420px; }
+    .login-card h2 { margin-bottom: 8px; }
+    .login-card p { color: var(--text-secondary); margin-bottom: 24px; font-size: 0.93rem; }
+    .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .section-header h2 { margin: 0; }
+    .domain-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+    .domain-card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 16px; display: flex; flex-direction: column; gap: 8px; }
+    .domain-name { font-weight: 600; font-size: 1rem; }
+    .domain-host { font-size: 0.82rem; color: var(--text-secondary); font-family: var(--font-mono); }
+    .domain-actions { display: flex; gap: 6px; margin-top: 4px; }
+    .gen-form { max-width: 560px; }
+    .gen-results { margin-top: 24px; }
+    .export-options { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+    .result-preview {
+      background: var(--bg-code); border: 1px solid var(--border); border-radius: var(--radius);
+      padding: 16px; font-family: var(--font-mono); font-size: 0.82rem; line-height: 1.8;
+      max-height: 500px; overflow-y: auto; white-space: pre-wrap; word-break: break-all;
+    }
+    .result-meta { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+  </style>
+</head>
+<body>
+
+  <!-- Login Screen -->
+  <div id="admin-login" class="login-wrapper">
+    <div class="card login-card">
+      <h2>Admin Access</h2>
+      <p>Enter your admin API key to continue.</p>
+      <div class="form-group">
+        <label class="form-label">API Key</label>
+        <input type="password" id="admin-key-input" class="form-input" placeholder="Enter admin API key" autocomplete="off">
+      </div>
+      <button class="btn btn-primary w-full" onclick="adminLogin()" id="btn-admin-login">Sign In</button>
+    </div>
+  </div>
+
+  <!-- Admin Layout -->
+  <div id="admin-app" class="layout-admin hidden">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <h2>10MinuteMail</h2>
+        <p>Admin Panel</p>
+      </div>
+      <nav class="sidebar-nav">
+        <div class="sidebar-section">Overview</div>
+        <button class="sidebar-link active" onclick="navigateTo('dashboard', this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          Dashboard
+        </button>
+        <div class="sidebar-section">Management</div>
+        <button class="sidebar-link" onclick="navigateTo('domains', this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10"/></svg>
+          Domains
+        </button>
+        <button class="sidebar-link" onclick="navigateTo('generate', this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="22" y1="11" x2="16" y2="11"/></svg>
+          Generate
+        </button>
+        <button class="sidebar-link" onclick="navigateTo('export', this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export
+        </button>
+      </nav>
+      <div style="flex:1;"></div>
+      <div class="sidebar-nav" style="padding-bottom: 12px; border-top: 1px solid var(--border); padding-top: 12px; margin-top: 12px;">
+        <button class="sidebar-link" onclick="window.location.href='/'">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+          Back to App
+        </button>
+        <button class="sidebar-link" onclick="toggleTheme()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.41 1.41m11.32 11.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+          Toggle Theme
+        </button>
+        <button class="sidebar-link" onclick="adminLogout()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Sign Out
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="admin-content">
+      <!-- Dashboard -->
+      <section id="page-dashboard">
+        <div class="section-header">
+          <h2>Dashboard</h2>
+          <button class="btn btn-sm btn-secondary" onclick="loadDashboard()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
+            Refresh
+          </button>
+        </div>
+        <div class="stats-grid" id="stats-grid">
+          <div class="stat-card"><div class="stat-value">—</div><div class="stat-label">Loading...</div></div>
+        </div>
+      </section>
+
+      <!-- Domains -->
+      <section id="page-domains" class="hidden">
+        <div class="section-header">
+          <h2>Domains</h2>
+          <button class="btn btn-primary btn-sm" onclick="showAddDomainForm()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add Domain
+          </button>
+        </div>
+        <!-- Add domain form (hidden by default) -->
+        <div id="add-domain-form" class="card hidden mb-4">
+          <h3 class="mb-4">Add New Domain</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Domain</label>
+              <input type="text" id="new-domain-name" class="form-input" placeholder="tempbox.io">
+            </div>
+            <div class="form-group">
+              <label class="form-label">POP3 Host</label>
+              <input type="text" id="new-domain-host" class="form-input" placeholder="mail.tempbox.io">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">POP3 Port</label>
+              <input type="number" id="new-domain-port" class="form-input" value="995">
+            </div>
+            <div class="form-group">
+              <label class="form-label">TLS</label>
+              <select id="new-domain-tls" class="form-select">
+                <option value="true" selected>Enabled</option>
+                <option value="false">Disabled</option>
+              </select>
+            </div>
+          </div>
+          <div class="flex gap-2">
+            <button class="btn btn-primary btn-sm" onclick="addDomain()">Add Domain</button>
+            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('add-domain-form').classList.add('hidden')">Cancel</button>
+          </div>
+        </div>
+        <div class="domain-grid" id="domains-grid">
+          <div class="text-muted p-4">Loading domains...</div>
+        </div>
+      </section>
+
+      <!-- Generate -->
+      <section id="page-generate" class="hidden">
+        <div class="section-header"><h2>Bulk Generate</h2></div>
+        <div class="gen-form">
+          <div class="card">
+            <div class="form-group">
+              <label class="form-label">Number of inboxes</label>
+              <input type="number" id="gen-count" class="form-input" value="10" min="1" max="1000">
+              <div class="form-hint">1 to 1000 per batch</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Domain(s)</label>
+              <div id="gen-domain-checkboxes" class="flex flex-col gap-2">
+                <div class="text-muted text-sm">Loading domains...</div>
+              </div>
+              <div class="form-hint">Leave unchecked to use all active domains (round-robin)</div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Token TTL</label>
+              <select id="gen-ttl" class="form-select">
+                <option value="300">5 minutes</option>
+                <option value="600" selected>10 minutes</option>
+                <option value="1800">30 minutes</option>
+                <option value="3600">1 hour</option>
+                <option value="21600">6 hours</option>
+                <option value="86400">24 hours</option>
+                <option value="604800">7 days</option>
+              </select>
+            </div>
+            <button class="btn btn-primary w-full" onclick="bulkGenerate()" id="btn-generate">Generate Inboxes</button>
+          </div>
+        </div>
+        <div id="gen-results" class="gen-results hidden">
+          <div class="result-meta">
+            <div><span class="badge badge-success" id="gen-result-count">0</span> inboxes generated</div>
+            <div class="flex gap-2">
+              <button class="btn btn-sm btn-secondary" onclick="copyGeneratedResults()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                Copy All
+              </button>
+              <button class="btn btn-sm btn-secondary" onclick="downloadGeneratedResults()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Download .txt
+              </button>
+            </div>
+          </div>
+          <div class="result-preview" id="gen-result-text"></div>
+        </div>
+      </section>
+
+      <!-- Export -->
+      <section id="page-export" class="hidden">
+        <div class="section-header"><h2>Export Inboxes</h2></div>
+        <div class="card" style="max-width: 560px;">
+          <p class="text-secondary mb-4">Export all generated inboxes in <code>email:password</code> format.</p>
+          <div class="form-group">
+            <label class="form-label">Filter by domain</label>
+            <select id="export-domain" class="form-select">
+              <option value="">All domains</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Status</label>
+            <select id="export-status" class="form-select">
+              <option value="active">Active only</option>
+              <option value="all">All (including deleted)</option>
+            </select>
+          </div>
+          <div class="export-options">
+            <button class="btn btn-primary btn-sm" onclick="doExport('text')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/></svg>
+              Export .txt
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="doExport('csv')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/></svg>
+              Export .csv
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="doExport('json')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/></svg>
+              Export .json
+            </button>
+          </div>
+        </div>
+        <div id="export-results" class="gen-results hidden mt-4">
+          <div class="result-meta">
+            <div><span class="badge badge-info" id="export-result-count">0</span> entries</div>
+            <button class="btn btn-sm btn-secondary" onclick="copyExportResults()">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              Copy
+            </button>
+          </div>
+          <div class="result-preview" id="export-result-text"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Toast container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="/js/admin.js"></script>
+</body>
+</html>
