@@ -421,6 +421,52 @@ export default async function adminRoutes(fastify) {
   });
 
   // ==========================================================
+  // ADMIN: Read messages by email address
+  // ==========================================================
+  fastify.get('/v1/admin/messages', {
+    schema: {
+      querystring: {
+        type: 'object',
+        required: ['email'],
+        properties: {
+          email: { type: 'string', maxLength: 320 },
+          limit: { type: 'integer', minimum: 1, maximum: 50, default: 20 },
+        },
+      },
+    },
+  }, async (request, reply) => {
+    const { email, limit } = request.query;
+
+    const inboxResult = await query(
+      `SELECT id FROM inboxes WHERE LOWER(email_address) = LOWER($1) AND status = $2 LIMIT 1`,
+      [email, INBOX_STATUS_ACTIVE]
+    );
+
+    if (inboxResult.rows.length === 0) {
+      return reply.code(404).send({ error: { message: 'Inbox not found for this email' } });
+    }
+
+    const inboxId = inboxResult.rows[0].id;
+
+    const msgResult = await query(
+      `SELECT id, uid, message_id, sender, recipients, subject,
+              text_body, html_body, headers, size_bytes, received_at, fetched_at
+       FROM messages
+       WHERE inbox_id = $1
+       ORDER BY COALESCE(received_at, fetched_at) DESC
+       LIMIT $2`,
+      [inboxId, limit || 20]
+    );
+
+    return {
+      inbox_id: inboxId,
+      email,
+      messages: msgResult.rows,
+      count: msgResult.rows.length,
+    };
+  });
+
+  // ==========================================================
   // ADMIN STATS
   // ==========================================================
 
