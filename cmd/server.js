@@ -33,6 +33,27 @@ async function main() {
     await fastify.register(attachmentRoutes);
     await fastify.register(adminRoutes);
 
+    // Root endpoint — API info
+    fastify.get('/', async () => {
+      return {
+        service: '10MinuteMail API',
+        version: '1.0.0',
+        docs: '/docs',
+        health: '/health',
+        endpoints: {
+          create_inbox: 'POST /v1/inboxes',
+          fetch_messages: 'GET /v1/inboxes/:id/messages',
+          download_attachment: 'GET /v1/inboxes/:id/messages/:uid/attachments/:attachmentId',
+          rotate_token: 'POST /v1/inboxes/:id/token:rotate',
+          delete_inbox: 'DELETE /v1/inboxes/:id',
+          admin_domains: 'GET /v1/admin/domains',
+          admin_generate: 'POST /v1/admin/generate',
+          admin_export: 'GET /v1/admin/export',
+          admin_stats: 'GET /v1/admin/stats',
+        },
+      };
+    });
+
     // Health check endpoint (no auth required)
     fastify.get('/health', {
       schema: {
