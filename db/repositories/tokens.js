@@ -8,7 +8,7 @@ import { TOKEN_STATUS_ACTIVE, TOKEN_STATUS_REVOKED } from '../../pkg/constants.j
  * Create a new access token for an inbox.
  * Stores the token hash in DB; returns the raw JWT to the client.
  */
-export async function createToken({ inboxId, issuedByIp, ttlSeconds }) {
+export async function createToken({ inboxId, issuedByIp, ttlSeconds, client }) {
   // Generate JWT
   const tokenId = generateOpaqueToken().slice(0, 16); // short unique ID
   const { token: rawJwt, expiresAt } = signToken(
@@ -19,7 +19,8 @@ export async function createToken({ inboxId, issuedByIp, ttlSeconds }) {
   // Store hash of JWT for server-side validation
   const tokenHash = hashToken(rawJwt);
 
-  const result = await query(
+  const queryFn = client || { query: (text, params) => query(text, params) };
+  const result = await queryFn.query(
     `INSERT INTO tokens (inbox_id, token_hash, status, expires_at, issued_by_ip)
      VALUES ($1, $2, $3, $4, $5)
      RETURNING id, inbox_id, status, expires_at, created_at`,
