@@ -1,23 +1,20 @@
 import { query } from '../connection.js';
 import { hashToken } from '../../internal/crypto/encryption.js';
-import { signToken, generateOpaqueToken } from '../../internal/auth/jwt.js';
+import { signToken } from '../../internal/auth/jwt.js';
 import { NotFoundError } from '../../pkg/errors.js';
 import { TOKEN_STATUS_ACTIVE, TOKEN_STATUS_REVOKED } from '../../pkg/constants.js';
 
 /**
  * Create a new access token for an inbox.
- * Stores the token hash in DB; returns the raw JWT to the client.
+ * Generates a 15-character alphanumeric token; stores a hash in DB.
  */
 export async function createToken({ inboxId, issuedByIp, ttlSeconds, client }) {
-  // Generate JWT
-  const tokenId = generateOpaqueToken().slice(0, 16); // short unique ID
-  const { token: rawJwt, expiresAt } = signToken(
-    { inbox_id: inboxId, token_id: tokenId },
+  const { token: rawToken, expiresAt } = signToken(
+    { inbox_id: inboxId },
     ttlSeconds
   );
 
-  // Store hash of JWT for server-side validation
-  const tokenHash = hashToken(rawJwt);
+  const tokenHash = hashToken(rawToken);
 
   const queryFn = client || { query: (text, params) => query(text, params) };
   const result = await queryFn.query(
@@ -29,7 +26,7 @@ export async function createToken({ inboxId, issuedByIp, ttlSeconds, client }) {
 
   return {
     ...result.rows[0],
-    token: rawJwt,
+    token: rawToken,
     expires_at: expiresAt,
   };
 }
