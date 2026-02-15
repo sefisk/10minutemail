@@ -100,11 +100,6 @@ function adminLogout() {
   }
 })();
 
-// Handle enter key on login
-document.getElementById('admin-key-input').addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') adminLogin();
-});
-
 // ── Navigation ─────────────────────────────────────────
 function navigateTo(page, btn) {
   document.querySelectorAll('.admin-content > section').forEach(s => s.classList.add('hidden'));
@@ -189,10 +184,10 @@ function renderDomains() {
       </div>
       <div class="domain-host">${esc(d.pop3_host)}:${d.pop3_port} ${d.pop3_tls ? '(TLS)' : ''}</div>
       <div class="domain-actions">
-        <button class="btn btn-sm btn-ghost" onclick="toggleDomain('${d.id}', ${!d.is_active})">
+        <button class="btn btn-sm btn-ghost" data-toggle-domain="${d.id}" data-active="${!d.is_active}">
           ${d.is_active ? 'Disable' : 'Enable'}
         </button>
-        <button class="btn btn-sm btn-ghost" style="color:var(--danger);" onclick="removeDomain('${d.id}', '${esc(d.domain)}')">
+        <button class="btn btn-sm btn-ghost" style="color:var(--danger);" data-remove-domain="${d.id}" data-domain-name="${esc(d.domain)}">
           Delete
         </button>
       </div>
@@ -243,7 +238,7 @@ async function removeDomain(id, name) {
 function loadDomainCheckboxes() {
   const container = document.getElementById('gen-domain-checkboxes');
   if (domains.length === 0) {
-    container.innerHTML = '<div class="text-muted text-sm">No domains available. <a href="#" onclick="navigateTo(\'domains\')">Add one first.</a></div>';
+    container.innerHTML = '<div class="text-muted text-sm">No domains available. <a href="#" data-nav-link="domains">Add one first.</a></div>';
     return;
   }
   container.innerHTML = domains.filter(d => d.is_active).map(d => `
@@ -361,3 +356,65 @@ function downloadText(text, filename, mime) {
   a.remove();
   URL.revokeObjectURL(url);
 }
+
+// ── Event Listeners ────────────────────────────────────
+// Login
+document.getElementById('btn-admin-login').addEventListener('click', adminLogin);
+document.getElementById('admin-key-input').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') adminLogin();
+});
+
+// Sidebar navigation (using data-nav attributes)
+document.querySelectorAll('[data-nav]').forEach(btn => {
+  btn.addEventListener('click', () => navigateTo(btn.dataset.nav, btn));
+});
+
+// Sidebar utility buttons
+document.getElementById('btn-back-to-app').addEventListener('click', () => { window.location.href = '/'; });
+document.getElementById('btn-toggle-theme').addEventListener('click', toggleTheme);
+document.getElementById('btn-admin-logout').addEventListener('click', adminLogout);
+
+// Dashboard
+document.getElementById('btn-refresh-dashboard').addEventListener('click', loadDashboard);
+
+// Domains
+document.getElementById('btn-show-add-domain').addEventListener('click', showAddDomainForm);
+document.getElementById('btn-add-domain').addEventListener('click', addDomain);
+document.getElementById('btn-cancel-add-domain').addEventListener('click', () => {
+  document.getElementById('add-domain-form').classList.add('hidden');
+});
+
+// Domain actions (event delegation on the domains grid)
+document.getElementById('domains-grid').addEventListener('click', (e) => {
+  const toggleBtn = e.target.closest('[data-toggle-domain]');
+  if (toggleBtn) {
+    toggleDomain(toggleBtn.dataset.toggleDomain, toggleBtn.dataset.active === 'true');
+    return;
+  }
+  const removeBtn = e.target.closest('[data-remove-domain]');
+  if (removeBtn) {
+    removeDomain(removeBtn.dataset.removeDomain, removeBtn.dataset.domainName);
+  }
+});
+
+// Generate
+document.getElementById('btn-generate').addEventListener('click', bulkGenerate);
+document.getElementById('btn-copy-generated').addEventListener('click', copyGeneratedResults);
+document.getElementById('btn-download-generated').addEventListener('click', downloadGeneratedResults);
+
+// Generate domain checkboxes - navigation link (event delegation)
+document.getElementById('gen-domain-checkboxes').addEventListener('click', (e) => {
+  const navLink = e.target.closest('[data-nav-link]');
+  if (navLink) {
+    e.preventDefault();
+    const navBtn = document.querySelector(`[data-nav="${navLink.dataset.navLink}"]`);
+    navigateTo(navLink.dataset.navLink, navBtn);
+  }
+});
+
+// Export buttons (event delegation using data-export attribute)
+document.querySelector('.export-options').addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-export]');
+  if (btn) doExport(btn.dataset.export);
+});
+document.getElementById('btn-copy-export').addEventListener('click', copyExportResults);
