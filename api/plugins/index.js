@@ -20,6 +20,7 @@ export async function registerPlugins(fastify) {
   // Helmet for security headers
   await fastify.register(fastifyHelmet, {
     contentSecurityPolicy: {
+      useDefaults: false,
       directives: {
         defaultSrc: ["'self'"],
         scriptSrc: ["'self'", "'unsafe-inline'"],
@@ -28,6 +29,9 @@ export async function registerPlugins(fastify) {
         imgSrc: ["'self'", 'data:'],
         connectSrc: ["'self'"],
         frameSrc: ["'self'"],
+        baseUri: ["'self'"],
+        formAction: ["'self'"],
+        objectSrc: ["'none'"],
       },
     },
     hsts: false,
