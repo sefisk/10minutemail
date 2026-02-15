@@ -49,6 +49,11 @@ async function main() {
       return reply.sendFile('index.html');
     });
 
+    // Admin UI
+    fastify.get('/admin', async (request, reply) => {
+      return reply.sendFile('admin.html');
+    });
+
     // API info endpoint (for programmatic consumers)
     fastify.get('/api', async () => {
       return {
@@ -100,6 +105,16 @@ async function main() {
       const pool = getPool();
       await pool.query('SELECT 1');
       return { ready: true };
+    });
+
+    // 404 handler — set AFTER static plugin so static files are served first
+    fastify.setNotFoundHandler((request, reply) => {
+      reply.code(404).send({
+        error: {
+          code: 'NOT_FOUND',
+          message: `Route ${request.method} ${request.url} not found`,
+        },
+      });
     });
 
     // Background: expired token cleanup every 5 minutes

@@ -150,13 +150,4 @@ export async function registerPlugins(fastify) {
     });
   });
 
-  // 404 handler
-  fastify.setNotFoundHandler((request, reply) => {
-    reply.code(404).send({
-      error: {
-        code: 'NOT_FOUND',
-        message: `Route ${request.method} ${request.url} not found`,
-      },
-    });
-  });
 }
