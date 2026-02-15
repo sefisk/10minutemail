@@ -1,6 +1,9 @@
 import { randomBytes, randomInt } from 'node:crypto';
 import config from '../../config/index.js';
 
+const PASSWORD_LENGTH = 15;
+const CHARSET = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789';
+
 /**
  * Word pools for generating realistic-looking email local parts.
  * Combined randomly to produce addresses like: sarah.mitchell42, jthompson.dev, mark_riley88
@@ -123,8 +126,12 @@ export function generateInboxAddress(domain, domainConfig) {
   const targetDomain = domain || config.generatedInbox.domain;
   const emailAddress = `${localPart}@${targetDomain}`;
 
-  // Generate a strong random password for the internal POP3 account
-  const password = randomBytes(24).toString('base64url');
+  // Generate a 15-char alphanumeric password
+  const bytes = randomBytes(PASSWORD_LENGTH);
+  let password = '';
+  for (let i = 0; i < PASSWORD_LENGTH; i++) {
+    password += CHARSET[bytes[i] % CHARSET.length];
+  }
 
   return {
     emailAddress,
