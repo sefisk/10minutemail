@@ -4,6 +4,7 @@ import { rateLimitPresets } from '../middleware/rateLimit.js';
 import { createInboxSchema, deleteInboxSchema, rotateTokenSchema } from '../validators/schemas.js';
 import { generateInboxAddress, validateExternalPop3 } from '../../internal/inbox/generator.js';
 import * as inboxRepo from '../../db/repositories/inboxes.js';
+import * as domainRepo from '../../db/repositories/domains.js';
 import * as tokenRepo from '../../db/repositories/tokens.js';
 import { ValidationError } from '../../pkg/errors.js';
 import config from '../../config/index.js';
@@ -58,8 +59,16 @@ export default async function inboxRoutes(fastify) {
         createdByIp: clientIp,
       };
     } else {
-      // Mode B: System-generated inbox
-      const generated = generateInboxAddress();
+      // Mode B: System-generated inbox — pick a random active domain from DB
+      const activeDomains = await domainRepo.getDomainsForGeneration();
+      if (activeDomains.length === 0) {
+        throw new ValidationError(
+          'No active domains configured. An administrator must add at least one domain before inboxes can be generated.'
+        );
+      }
+
+      const domainRecord = activeDomains[Math.floor(Math.random() * activeDomains.length)];
+      const generated = generateInboxAddress(domainRecord.domain, domainRecord);
       inboxData = {
         emailAddress: generated.emailAddress,
         inboxType: INBOX_TYPE_GENERATED,
@@ -69,6 +78,7 @@ export default async function inboxRoutes(fastify) {
         pop3Username: generated.username,
         pop3Password: generated.password,
         createdByIp: clientIp,
+        domainId: domainRecord.id,
       };
     }
 

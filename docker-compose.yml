@@ -60,6 +60,7 @@ services:
       PORT: 3000
     ports:
       - "3000:3000"
+      - "25:25"
     depends_on:
       postgres:
         condition: service_healthy

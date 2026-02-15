@@ -15,6 +15,7 @@ export async function createInbox({
   pop3Username,
   pop3Password,
   createdByIp,
+  domainId,
 }) {
   // Encrypt POP3 credentials before storage
   const pop3UsernameEnc = encrypt(pop3Username);
@@ -25,10 +26,10 @@ export async function createInbox({
       email_address, inbox_type, status,
       pop3_host, pop3_port, pop3_tls,
       pop3_username_enc, pop3_password_enc,
-      created_by_ip
-    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      created_by_ip, domain_id
+    ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
     RETURNING id, email_address, inbox_type, status, pop3_host, pop3_port, pop3_tls,
-              created_at, updated_at`,
+              domain_id, created_at, updated_at`,
     [
       emailAddress,
       inboxType,
@@ -39,6 +40,7 @@ export async function createInbox({
       pop3UsernameEnc,
       pop3PasswordEnc,
       createdByIp,
+      domainId || null,
     ]
   );
 

@@ -118,20 +118,28 @@
         <!-- Add domain form (hidden by default) -->
         <div id="add-domain-form" class="card hidden mb-4">
           <h3 class="mb-4">Add New Domain</h3>
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Domain</label>
-              <input type="text" id="new-domain-name" class="form-input" placeholder="tempbox.io">
-            </div>
-            <div class="form-group">
-              <label class="form-label">POP3 Host</label>
-              <input type="text" id="new-domain-host" class="form-input" placeholder="mail.tempbox.io">
-            </div>
+          <div class="form-group">
+            <label class="form-label">Domain</label>
+            <input type="text" id="new-domain-name" class="form-input" placeholder="tempbox.io">
           </div>
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">POP3 Port</label>
-              <input type="number" id="new-domain-port" class="form-input" value="995">
+          <div class="form-group">
+            <label class="form-label">Mail Server</label>
+            <select id="new-domain-mode" class="form-select">
+              <option value="local" selected>Built-in (SMTP on this server)</option>
+              <option value="external">External POP3 Server</option>
+            </select>
+            <div class="form-hint">Built-in mode runs a mail server on this machine. Just point your MX record here.</div>
+          </div>
+          <div id="external-pop3-fields" class="hidden">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">POP3 Host</label>
+                <input type="text" id="new-domain-host" class="form-input" placeholder="mail.tempbox.io">
+              </div>
+              <div class="form-group">
+                <label class="form-label">POP3 Port</label>
+                <input type="number" id="new-domain-port" class="form-input" value="995">
+              </div>
             </div>
             <div class="form-group">
               <label class="form-label">TLS</label>
@@ -145,6 +153,13 @@
             <button class="btn btn-primary btn-sm" id="btn-add-domain">Add Domain</button>
             <button class="btn btn-ghost btn-sm" id="btn-cancel-add-domain">Cancel</button>
           </div>
+        </div>
+        <!-- DNS Setup Instructions (shown after adding a local domain) -->
+        <div id="dns-setup-card" class="card hidden mb-4" style="border-color: var(--primary); background: var(--primary-light);">
+          <h3 class="mb-2">DNS Setup Required</h3>
+          <p class="text-secondary mb-3" style="font-size: 0.9rem;">Add these DNS records to your domain registrar to start receiving mail:</p>
+          <div class="result-preview" id="dns-records" style="background: var(--bg-card);"></div>
+          <button class="btn btn-sm btn-ghost mt-3" id="btn-dismiss-dns">Dismiss</button>
         </div>
         <div class="domain-grid" id="domains-grid">
           <div class="text-muted p-4">Loading domains...</div>

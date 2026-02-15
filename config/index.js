@@ -108,6 +108,15 @@ const config = Object.freeze({
     useTls: optional('GENERATED_INBOX_TLS', 'true') === 'true',
   }),
 
+  // Built-in SMTP server (receives mail for local domains)
+  smtp: Object.freeze({
+    enabled: optional('SMTP_ENABLED', 'true') === 'true',
+    port: parseInt(optional('SMTP_PORT', '25'), 10),
+    host: optional('SMTP_HOST', '0.0.0.0'),
+    banner: optional('SMTP_BANNER', '10MinuteMail SMTP'),
+    maxMessageSize: parseInt(optional('SMTP_MAX_MESSAGE_SIZE', '10485760'), 10), // 10MB
+  }),
+
   // Logging
   log: Object.freeze({
     level: optional('LOG_LEVEL', 'info'),

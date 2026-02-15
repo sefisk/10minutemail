@@ -198,7 +198,7 @@ function showMessage(uid) {
   let attachmentsHtml = '';
   if (msg.attachments && msg.attachments.length > 0) {
     const chips = msg.attachments.map(a =>
-      `<a class="attachment-chip" href="${API}/v1/inboxes/${state.inboxId}/messages/${msg.uid}/attachments/${a.id}" target="_blank" onclick="event.stopPropagation(); addAuthToLink(this);">
+      `<a class="attachment-chip" href="${API}/v1/inboxes/${state.inboxId}/messages/${msg.uid}/attachments/${a.id}?token=${encodeURIComponent(state.token)}" target="_blank">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
         ${escapeHtml(a.filename)} <span class="attachment-size">(${formatBytes(a.size_bytes)})</span>
       </a>`
@@ -209,8 +209,8 @@ function showMessage(uid) {
   let bodyHtml = '';
   if (hasHtml || hasText) {
     const tabs = [];
-    if (hasHtml) tabs.push(`<button class="body-tab active" onclick="switchBodyTab(this, 'html')">HTML</button>`);
-    if (hasText) tabs.push(`<button class="body-tab${!hasHtml ? ' active' : ''}" onclick="switchBodyTab(this, 'text')">Text</button>`);
+    if (hasHtml) tabs.push(`<button class="body-tab active" data-body-tab="html">HTML</button>`);
+    if (hasText) tabs.push(`<button class="body-tab${!hasHtml ? ' active' : ''}" data-body-tab="text">Text</button>`);
 
     bodyHtml = `
       <div class="body-tabs">${tabs.join('')}</div>
@@ -297,7 +297,7 @@ function renderMessages() {
         </span>` : '';
 
     return `
-      <div class="message-item" onclick="showMessage('${escapeAttr(msg.uid)}')">
+      <div class="message-item" data-message-uid="${escapeAttr(msg.uid)}">
         <div>
           <div class="message-sender">${escapeHtml(msg.sender || 'Unknown sender')}</div>
           <div class="message-subject">${escapeHtml(msg.subject || '(No subject)')}</div>
@@ -414,6 +414,30 @@ function timeAgo(date) {
   if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
   return date.toLocaleDateString();
 }
+
+// ── Event Listeners ───────────────────────────────────
+document.getElementById('themeToggle').addEventListener('click', toggleTheme);
+document.getElementById('tab-btn-generated').addEventListener('click', function () { switchTab(this); });
+document.getElementById('tab-btn-external').addEventListener('click', function () { switchTab(this); });
+document.getElementById('btn-create-gen').addEventListener('click', createGeneratedInbox);
+document.getElementById('btn-create-ext').addEventListener('click', createExternalInbox);
+document.getElementById('btn-copy-email').addEventListener('click', copyEmail);
+document.getElementById('btn-refresh').addEventListener('click', refreshMessages);
+document.getElementById('btn-rotate-token').addEventListener('click', rotateToken);
+document.getElementById('btn-delete-inbox').addEventListener('click', deleteInbox);
+document.getElementById('btn-back-inbox').addEventListener('click', showInbox);
+
+// Event delegation for dynamically generated message items
+document.getElementById('messages-container').addEventListener('click', (e) => {
+  const item = e.target.closest('[data-message-uid]');
+  if (item) showMessage(item.dataset.messageUid);
+});
+
+// Event delegation for body tab switching in message detail
+document.getElementById('message-detail-content').addEventListener('click', (e) => {
+  const tabBtn = e.target.closest('[data-body-tab]');
+  if (tabBtn) switchBodyTab(tabBtn, tabBtn.dataset.bodyTab);
+});
 
 // ── Init ───────────────────────────────────────────────
 (function init() {

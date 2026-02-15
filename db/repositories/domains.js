@@ -4,7 +4,7 @@ import { NotFoundError, ConflictError } from '../../pkg/errors.js';
 /**
  * Create a new domain.
  */
-export async function createDomain({ domain, pop3Host, pop3Port, pop3Tls }) {
+export async function createDomain({ domain, pop3Host, pop3Port, pop3Tls, isLocal }) {
   // Check for duplicate
   const existing = await query(
     `SELECT id FROM domains WHERE domain = $1`,
@@ -15,10 +15,10 @@ export async function createDomain({ domain, pop3Host, pop3Port, pop3Tls }) {
   }
 
   const result = await query(
-    `INSERT INTO domains (domain, pop3_host, pop3_port, pop3_tls)
-     VALUES ($1, $2, $3, $4)
-     RETURNING id, domain, pop3_host, pop3_port, pop3_tls, is_active, created_at`,
-    [domain, pop3Host, pop3Port, pop3Tls]
+    `INSERT INTO domains (domain, pop3_host, pop3_port, pop3_tls, is_local)
+     VALUES ($1, $2, $3, $4, $5)
+     RETURNING id, domain, pop3_host, pop3_port, pop3_tls, is_local, is_active, created_at`,
+    [domain, pop3Host, pop3Port, pop3Tls, isLocal || false]
   );
 
   return result.rows[0];
@@ -28,7 +28,7 @@ export async function createDomain({ domain, pop3Host, pop3Port, pop3Tls }) {
  * List all domains.
  */
 export async function listDomains({ activeOnly = false } = {}) {
-  let sql = `SELECT id, domain, pop3_host, pop3_port, pop3_tls, is_active, created_at, updated_at
+  let sql = `SELECT id, domain, pop3_host, pop3_port, pop3_tls, is_local, is_active, created_at, updated_at
              FROM domains`;
   const params = [];
 
@@ -110,6 +110,10 @@ export async function updateDomain(id, updates) {
     fields.push(`is_active = $${idx++}`);
     values.push(updates.isActive);
   }
+  if (updates.isLocal !== undefined) {
+    fields.push(`is_local = $${idx++}`);
+    values.push(updates.isLocal);
+  }
 
   if (fields.length === 0) {
     return getDomainById(id);
@@ -118,7 +122,7 @@ export async function updateDomain(id, updates) {
   values.push(id);
   const result = await query(
     `UPDATE domains SET ${fields.join(', ')} WHERE id = $${idx}
-     RETURNING id, domain, pop3_host, pop3_port, pop3_tls, is_active, created_at, updated_at`,
+     RETURNING id, domain, pop3_host, pop3_port, pop3_tls, is_local, is_active, created_at, updated_at`,
     values
   );
 
