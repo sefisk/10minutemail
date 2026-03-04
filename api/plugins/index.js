@@ -1,12 +1,12 @@
 import fastifyHelmet from '@fastify/helmet';
 import fastifyCors from '@fastify/cors';
-import fastifyRateLimit from '@fastify/rate-limit';
+
 import fastifySensible from '@fastify/sensible';
 import fastifySwagger from '@fastify/swagger';
 import fastifySwaggerUi from '@fastify/swagger-ui';
 import config from '../../config/index.js';
 import securityPlugin from '../middleware/security.js';
-import { rateLimitPresets } from '../middleware/rateLimit.js';
+
 import { AppError } from '../../pkg/errors.js';
 import logger from '../../pkg/logger.js';
 
@@ -46,23 +46,6 @@ export async function registerPlugins(fastify) {
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Request-ID', 'X-Admin-Key'],
     maxAge: 600,
     credentials: false,
-  });
-
-  // Global rate limiting
-  await fastify.register(fastifyRateLimit, {
-    ...rateLimitPresets.global,
-    redis: null, // Use in-memory store; swap to Redis in production
-    addHeadersOnExceeding: {
-      'x-ratelimit-limit': true,
-      'x-ratelimit-remaining': true,
-      'x-ratelimit-reset': true,
-    },
-    addHeaders: {
-      'x-ratelimit-limit': true,
-      'x-ratelimit-remaining': true,
-      'x-ratelimit-reset': true,
-      'retry-after': true,
-    },
   });
 
   // Swagger documentation
@@ -125,16 +108,6 @@ export async function registerPlugins(fastify) {
           code: 'VALIDATION_ERROR',
           message: 'Request validation failed',
           details: error.validation,
-        },
-      });
-    }
-
-    // Handle rate limit errors
-    if (error.statusCode === 429) {
-      return reply.code(429).send({
-        error: {
-          code: 'RATE_LIMIT_EXCEEDED',
-          message: error.message || 'Too many requests',
         },
       });
     }
