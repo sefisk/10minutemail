@@ -1,6 +1,6 @@
 import { authenticate, authorizeInbox } from '../../internal/auth/middleware.js';
 import { audit } from '../middleware/audit.js';
-import { rateLimitPresets } from '../middleware/rateLimit.js';
+
 import { createInboxSchema, deleteInboxSchema, rotateTokenSchema } from '../validators/schemas.js';
 import { generateInboxAddress, validateExternalPop3 } from '../../internal/inbox/generator.js';
 import * as inboxRepo from '../../db/repositories/inboxes.js';
@@ -25,7 +25,7 @@ export default async function inboxRoutes(fastify) {
   // ==========================================================
   fastify.post('/v1/inboxes', {
     schema: createInboxSchema,
-    config: { rateLimit: rateLimitPresets.createInbox },
+
   }, async (request, reply) => {
     const { mode, token_ttl_seconds } = request.body;
     const clientIp = request.ip;

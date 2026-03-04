@@ -1,6 +1,6 @@
 import { authenticate, authorizeInbox } from '../../internal/auth/middleware.js';
 import { audit } from '../middleware/audit.js';
-import { rateLimitPresets } from '../middleware/rateLimit.js';
+
 import { getMessagesSchema } from '../validators/schemas.js';
 import * as messageRepo from '../../db/repositories/messages.js';
 import * as inboxRepo from '../../db/repositories/inboxes.js';
@@ -20,7 +20,7 @@ export default async function messageRoutes(fastify) {
   fastify.get('/v1/inboxes/:id/messages', {
     schema: getMessagesSchema,
     preHandler: [authenticate, authorizeInbox],
-    config: { rateLimit: rateLimitPresets.fetchMessages },
+
   }, async (request, reply) => {
     const { id } = request.params;
     const { since_uid: sinceUid, limit, fetch_new: fetchNew } = request.query;
